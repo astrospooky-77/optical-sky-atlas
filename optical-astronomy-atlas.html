@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Optical Sky Atlas – a research tool for astronomy students</title>
+<style>
+:root{--bg:#f4f6fa;--panel:#fff;--ink:#141a2b;--mute:#586079;--line:#d6dbe8;--acc:#b3261e;--sky:#0b1226;--dot:#ffd27a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a0e1c;--panel:#111833;--ink:#e8ebf5;--mute:#98a2c3;--line:#26305a;--acc:#ff6b5e}}
+:root[data-theme="dark"]{--bg:#0a0e1c;--panel:#111833;--ink:#e8ebf5;--mute:#98a2c3;--line:#26305a;--acc:#ff6b5e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2,h3{font-family:Georgia,"Times New Roman",serif;font-weight:600;line-height:1.2;margin:0}
+header{padding:28px 18px 8px;max-width:1100px;margin:auto;display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
+header h1{font-size:clamp(26px,5vw,40px)}
+header p{color:var(--mute);margin:8px 0 0;max-width:60ch}
+button,select,input{font:inherit;color:inherit}
+.btn{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
+.btn:hover{border-color:var(--acc)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+nav{max-width:1100px;margin:12px auto 0;padding:0 18px;display:flex;gap:6px;overflow-x:auto}
+nav button{border:0;background:none;padding:10px 14px;border-bottom:3px solid transparent;cursor:pointer;color:var(--mute);white-space:nowrap}
+nav button[aria-selected=true]{color:var(--ink);border-color:var(--acc);font-weight:600}
+main{max-width:1100px;margin:auto;padding:16px 18px 60px}
+section[hidden]{display:none}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.bar input,.bar select{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+.bar input{flex:1 1 200px}
+.grid{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:860px){.grid{grid-template-columns:1.1fr 1fr}}
+.list{display:flex;flex-direction:column;gap:6px;max-height:620px;overflow:auto}
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer;text-align:left;width:100%}
+.row[aria-pressed=true]{border-color:var(--acc);box-shadow:inset 3px 0 0 var(--acc)}
+.row small{color:var(--mute);display:block}
+.id{font-family:Georgia,serif;font-weight:700;min-width:54px}
+.mag{font-variant-numeric:tabular-nums;color:var(--mute)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+.card h2{font-size:26px}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:14px 0}
+dt{color:var(--mute)} dd{margin:0}
+.tip{border-left:3px solid var(--acc);padding:2px 12px;margin:12px 0;color:var(--ink)}
+#sky{width:100%;height:auto;background:var(--sky);border-radius:10px;display:block}
+#sky circle{cursor:pointer}
+.legend{color:var(--mute);font-size:14px;margin:8px 0 0}
+.tools{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+label{display:block;margin:10px 0 4px;color:var(--mute);font-size:14px}
+.tools input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+.out{margin-top:12px;font-family:Georgia,serif;font-size:19px;min-height:28px}
+.gl dt{font-weight:600;color:var(--ink)}
+.gl{grid-template-columns:1fr}
+.star{background:none;border:0;cursor:pointer;font-size:20px;color:var(--mute);padding:0 4px}
+.star[aria-pressed=true]{color:var(--acc)}
+footer{max-width:1100px;margin:auto;padding:0 18px 40px;color:var(--mute);font-size:14px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Optical Sky Atlas</h1>
+    <p>Look up stars, clusters, nebulae and galaxies you can observe with eyes, binoculars or a telescope. Search the catalog, plot objects on a sky chart, and use the calculators for your observing projects.</p>
+  </div>
+  <button class="btn" id="theme" aria-label="Switch light or dark theme">Theme</button>
+</header>
+<nav role="tablist" id="tabs">
+  <button role="tab" data-t="cat" aria-selected="true">Catalog</button>
+  <button role="tab" data-t="map" aria-selected="false">Sky chart</button>
+  <button role="tab" data-t="tools" aria-selected="false">Calculators</button>
+  <button role="tab" data-t="gloss" aria-selected="false">Glossary</button>
+</nav>
+<main>
+<section id="cat">
+  <div class="bar">
+    <input id="q" type="search" placeholder="Search name, ID or constellation" aria-label="Search objects">
+    <select id="type" aria-label="Filter by type"></select>
+    <select id="sort" aria-label="Sort">
+      <option value="mag">Brightest first</option>
+      <option value="name">Name A–Z</option>
+      <option value="dist">Nearest first</option>
+    </select>
+    <button class="btn" id="saved" aria-pressed="false">★ My list</button>
+  </div>
+  <div class="grid">
+    <div class="list" id="list" aria-live="polite"></div>
+    <article class="card" id="detail"></article>
+  </div>
+</section>
+<section id="map" hidden>
+  <svg id="sky" viewBox="0 0 800 420" role="img" aria-label="Sky chart of catalog objects by right ascension and declination"></svg>
+  <p class="legend">Each dot is an object; bigger and brighter means lower magnitude. Right ascension runs from 24h on the left to 0h on the right, the way a sky chart is read. Tap a dot to open it in the catalog.</p>
+</section>
+<section id="tools" hidden>
+  <div class="tools">
+    <div class="card">
+      <h3>Absolute magnitude</h3>
+      <label for="m1">Apparent magnitude (m)</label><input id="m1" type="number" step="any" value="0.03">
+      <label for="d1">Distance in light-years</label><input id="d1" type="number" step="any" value="25">
+      <div class="out" id="o1"></div>
+      <p class="legend">M = m − 5 log₁₀(d / 10 pc). Ignores dust dimming.</p>
+    </div>
+    <div class="card">
+      <h3>Telescope limits</h3>
+      <label for="ap">Aperture in mm</label><input id="ap" type="number" step="any" value="100">
+      <label for="fl">Focal length in mm</label><input id="fl" type="number" step="any" value="900">
+      <label for="ep">Eyepiece focal length in mm</label><input id="ep" type="number" step="any" value="25">
+      <div class="out" id="o2"></div>
+      <p class="legend">Limiting magnitude ≈ 7.5 + 5 log₁₀(aperture in cm), under a dark sky. Light grasp compares to a 7 mm eye pupil.</p>
+    </div>
+    <div class="card">
+      <h3>Angular size</h3>
+      <label for="sz">Physical size (light-years)</label><input id="sz" type="number" step="any" value="3.4">
+      <label for="d3">Distance (light-years)</label><input id="d3" type="number" step="any" value="1344">
+      <div class="out" id="o3"></div>
+      <p class="legend">Full Moon is about 31 arcminutes wide. Defaults: Orion Nebula core.</p>
+    </div>
+    <div class="card">
+      <h3>Best month to observe</h3>
+      <label for="ra">Right ascension (hours)</label><input id="ra" type="number" step="any" min="0" max="24" value="5.59">
+      <div class="out" id="o4"></div>
+      <p class="legend">Month when an object is highest around local midnight. Approximate.</p>
+    </div>
+  </div>
+</section>
+<section id="gloss" hidden>
+  <dl class="gl card" id="gl"></dl>
+</section>
+</main>
+<footer>Catalog values are rounded from standard references (Messier and bright-star lists); distances and magnitudes vary by source, and variable stars change. Cross-check with SIMBAD or VizieR before citing in coursework.</footer>
+
+<script>
+const D=[
+// id,name,type,constellation,RA h,Dec °,mag,distance ly,note
+["Sirius","Sirius","Star","Canis Major",6.752,-16.72,-1.46,8.6,"Brightest star in the night sky. A white main-sequence star with a faint white-dwarf companion that is hard to spot in glare. Best viewed in winter."],
+["Arcturus","Arcturus","Star","Boötes",14.261,19.18,-0.05,37,"Orange giant with a high proper motion. Follow the Big Dipper's handle to find it."],
+["Vega","Vega","Star","Lyra",18.616,38.78,0.03,25,"Standard reference star for the magnitude scale. Spins fast, so it is flattened."],
+["Rigel","Rigel","Star","Orion",5.242,-8.2,0.13,860,"Blue supergiant. Tens of thousands of times more luminous than the Sun."],
+["Betelgeuse","Betelgeuse","Star","Orion",5.919,7.41,0.42,550,"Red supergiant and a semi-regular variable (about 0.0 to 1.6). Compare its brightness to Procyon and Aldebaran over weeks."],
+["Antares","Antares","Star","Scorpius",16.49,-26.43,1.06,550,"Red supergiant with a faint blue companion best seen in a steady, high-power view."],
+["Algol","Algol","Variable star","Perseus",3.136,40.96,2.1,90,"Eclipsing binary that dips to mag 3.4 every 2.87 days. Ideal for a naked-eye light curve project."],
+["Polaris","Polaris","Star","Ursa Minor",2.53,89.26,1.98,433,"North Star, within 1° of the north celestial pole. A Cepheid variable with a close companion."],
+["Albireo","Albireo","Double star","Cygnus",19.512,27.96,3.1,430,"Showpiece double: gold and blue-green stars. Split at 30–50x in a small telescope."],
+["M1","Crab Nebula","Supernova remnant","Taurus",5.575,22.01,8.4,6500,"Remnant of the supernova seen in 1054 CE. Faint oval glow in a 100 mm scope. A pulsar sits at its center."],
+["M3","M3","Globular cluster","Canes Venatici",13.703,28.38,6.2,33900,"Rich globular with a bright core. Resolves outer stars in 150 mm."],
+["M8","Lagoon Nebula","Nebula","Sagittarius",18.063,-24.38,6.0,4100,"Bright emission nebula with an embedded cluster. Visible in binoculars from dark sites."],
+["M13","Hercules Cluster","Globular cluster","Hercules",16.695,36.46,5.8,22200,"Best globular cluster of the northern sky. Hundreds of thousands of stars."],
+["M17","Omega Nebula","Nebula","Sagittarius",18.347,-16.18,6.0,5500,"Swan-shaped emission nebula. A nebula filter improves contrast."],
+["M22","M22","Globular cluster","Sagittarius",18.607,-23.9,5.1,10600,"One of the brightest globulars. Low in the sky for northern observers."],
+["M27","Dumbbell Nebula","Planetary nebula","Vulpecula",19.994,22.72,7.5,1360,"Large, bright planetary nebula. An OIII filter shows the full apple-core shape."],
+["M31","Andromeda Galaxy","Galaxy","Andromeda",0.712,41.27,3.4,2500000,"Nearest large galaxy. Naked-eye from dark sky; the light you see left about 2.5 million years ago."],
+["M33","Triangulum Galaxy","Galaxy","Triangulum",1.564,30.66,5.7,2700000,"Low surface brightness. Use low power and a very dark sky."],
+["M42","Orion Nebula","Nebula","Orion",5.588,-5.39,4.0,1344,"Stellar nursery visible to the naked eye. The Trapezium stars appear at 50x."],
+["M44","Beehive Cluster","Open cluster","Cancer",8.667,19.67,3.7,577,"Large open cluster. Best in binoculars. Galileo resolved it in 1609."],
+["M45","Pleiades","Open cluster","Taurus",3.79,24.12,1.6,444,"Seven stars to most eyes. Binoculars show many more, with faint blue nebulosity in long exposures."],
+["M51","Whirlpool Galaxy","Galaxy","Canes Venatici",13.498,47.2,8.4,23000000,"Face-on spiral interacting with a companion. Spiral arms need dark skies and 200 mm or more."],
+["M57","Ring Nebula","Planetary nebula","Lyra",18.893,33.03,8.8,2300,"Smoke-ring planetary nebula. Easy target in a small telescope at 100x."],
+["M81","Bode's Galaxy","Galaxy","Ursa Major",9.926,69.07,6.9,12000000,"Bright spiral. Fits in the same field as M82 at low power."],
+["M104","Sombrero Galaxy","Galaxy","Virgo",12.666,-11.62,8.0,29000000,"Edge-on galaxy with a dark dust lane. Needs 150 mm to see the lane."],
+["Dbl","Double Cluster","Open cluster","Perseus",2.333,57.13,3.7,7500,"Two rich clusters in one low-power field. Superb in binoculars."],
+["OmegaCen","Omega Centauri","Globular cluster","Centaurus",13.447,-47.48,3.7,17000,"Largest and brightest globular cluster. Best from the Southern Hemisphere."],
+["LMC","Large Magellanic Cloud","Galaxy","Dorado",5.393,-69.76,0.9,160000,"Satellite galaxy of the Milky Way. Contains the Tarantula Nebula. Southern sky only."]
+].map(a=>({id:a[0],name:a[1],type:a[2],con:a[3],ra:a[4],dec:a[5],mag:a[6],dist:a[7],note:a[8]}));
+
+const G=[["Apparent magnitude","How bright an object looks from Earth. Lower numbers are brighter; each step of 1 is about 2.5 times in brightness. Sirius is −1.46, the faintest naked-eye stars are near 6."],["Absolute magnitude","The magnitude an object would have at 10 parsecs (32.6 ly). It compares true brightness."],["Right ascension (RA)","East–west position on the sky, in hours from 0 to 24. Like longitude."],["Declination (Dec)","North–south position in degrees, from −90° to +90°. Like latitude."],["Light-year","Distance light travels in one year, about 9.46 trillion km."],["Aperture","Diameter of the main lens or mirror. It sets light grasp and resolving power."],["Magnification","Telescope focal length ÷ eyepiece focal length. Useful maximum is about 2x per mm of aperture."],["Open cluster","Loose group of young stars born together, in the galaxy's disk."],["Globular cluster","Dense ball of old stars orbiting the galaxy's halo."],["Planetary nebula","Shell of gas shed by a dying Sun-like star. It has nothing to do with planets."],["Emission nebula","Gas cloud glowing from nearby hot stars, often a place where stars are forming."],["Circumpolar","An object that never sets for your latitude."],["Seeing and transparency","Seeing is air steadiness (sharpness); transparency is how clear the air is (faint detail)."]];
+
+const $=s=>document.querySelector(s);
+let sel=D[0].id, saved=new Set(), onlySaved=false;
+try{JSON.parse(localStorage.getItem("oa-saved")||"[]").forEach(x=>saved.add(x))}catch(e){}
+const persist=()=>{try{localStorage.setItem("oa-saved",JSON.stringify([...saved]))}catch(e){}};
+const fmtD=l=>l>=1e6?(l/1e6).toFixed(1)+" million ly":l>=1e3?l.toLocaleString()+" ly":l+" ly";
+const fmtRA=h=>{const H=Math.floor(h),m=Math.round((h-H)*60);return H+"h "+String(m).padStart(2,"0")+"m"};
+const fmtDec=d=>(d<0?"−":"+")+Math.abs(d).toFixed(1)+"°";
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const bestMonth=ra=>MONTHS[Math.floor((2.7+(((ra+12)%24)/2))%12)];
+
+// types
+const types=["All types",...new Set(D.map(o=>o.type))];
+$("#type").innerHTML=types.map(t=>`<option>${t}</option>`).join("");
+
+function filtered(){
+  const q=$("#q").value.trim().toLowerCase(),t=$("#type").value,s=$("#sort").value;
+  let r=D.filter(o=>(t==="All types"||o.type===t)&&(!onlySaved||saved.has(o.id))&&(!q||(o.name+" "+o.id+" "+o.con+" "+o.type).toLowerCase().includes(q)));
+  r.sort((a,b)=>s==="mag"?a.mag-b.mag:s==="dist"?a.dist-b.dist:a.name.localeCompare(b.name));
+  return r;
+}
+function renderList(){
+  const r=filtered();
+  $("#list").innerHTML=r.length?r.map(o=>`<button class="row" data-id="${o.id}" aria-pressed="${o.id===sel}"><span class="id">${o.id.length>8?"":o.id}</span><span>${o.name}<small>${o.type} · ${o.con}</small></span><span class="mag">${o.mag.toFixed(1)}</span></button>`).join(""):`<p class="legend">No matches. Clear the search, pick "All types", or add objects to your list with the star.</p>`;
+}
+function renderDetail(){
+  const o=D.find(x=>x.id===sel);if(!o)return;
+  const lim=o.dec>=0?`Never rises south of ${fmtDec(o.dec-90)} latitude.`:`Never rises north of ${fmtDec(o.dec+90)} latitude.`;
+  const gear=o.mag<=2?"Naked eye":o.mag<=6?"Naked eye or binoculars":o.mag<=8?"Binoculars or small telescope":"Telescope, 100 mm or larger";
+  $("#detail").innerHTML=`<div style="display:flex;justify-content:space-between;gap:8px"><h2>${o.name}</h2><button class="star" id="star" aria-pressed="${saved.has(o.id)}" aria-label="Add to my list">★</button></div>
+  <p class="legend" style="margin-top:4px">${o.type} in ${o.con}</p>
+  <dl><dt>Magnitude</dt><dd>${o.mag.toFixed(1)}</dd><dt>Distance</dt><dd>${fmtD(o.dist)}</dd><dt>RA / Dec</dt><dd>${fmtRA(o.ra)} / ${fmtDec(o.dec)}</dd><dt>Best month</dt><dd>${bestMonth(o.ra)} (around midnight)</dd><dt>Gear</dt><dd>${gear}</dd><dt>Visibility</dt><dd>${lim}</dd></dl>
+  <p class="tip">${o.note}</p>
+  <p class="legend">Try this: log the date, sky conditions, and your sketch. Then compare with a catalog photo.</p>`;
+  $("#star").onclick=()=>{saved.has(o.id)?saved.delete(o.id):saved.add(o.id);persist();renderDetail();if(onlySaved)renderList()};
+}
+function select(id){sel=id;renderList();renderDetail()}
+$("#list").onclick=e=>{const b=e.target.closest(".row");if(b)select(b.dataset.id)};
+["#q","#type","#sort"].forEach(s=>$(s).addEventListener("input",renderList));
+$("#saved").onclick=e=>{onlySaved=!onlySaved;e.currentTarget.setAttribute("aria-pressed",onlySaved);renderList()};
+
+// sky chart
+function drawSky(){
+  const W=800,H=420,P=36,x=ra=>P+(24-ra)/24*(W-2*P),y=d=>P/2+(90-d)/180*(H-P-10);
+  let s="";
+  for(let h=0;h<=24;h+=2)s+=`<line x1="${x(h)}" x2="${x(h)}" y1="${y(90)}" y2="${y(-90)}" stroke="#2a3768" stroke-width=".6"/><text x="${x(h)}" y="${H-4}" fill="#8e9ac4" font-size="11" text-anchor="middle">${h}h</text>`;
+  for(let d=-60;d<=60;d+=30)s+=`<line x1="${P}" x2="${W-P}" y1="${y(d)}" y2="${y(d)}" stroke="${d===0?"#4a5a9c":"#2a3768"}" stroke-width=".6"/><text x="4" y="${y(d)+4}" fill="#8e9ac4" font-size="11">${d>0?"+":""}${d}°</text>`;
+  D.forEach(o=>{const r=Math.max(3,7-o.mag*.7);s+=`<circle data-id="${o.id}" cx="${x(o.ra)}" cy="${y(o.dec)}" r="${r}" fill="${o.id===sel?"#ff6b5e":"#ffd27a"}" opacity=".9"><title>${o.name} (mag ${o.mag})</title></circle>`;if(o.mag<2.2||o.id===sel)s+=`<text x="${x(o.ra)+r+3}" y="${y(o.dec)+4}" fill="#e8ebf5" font-size="11">${o.name}</text>`});
+  $("#sky").innerHTML=s;
+}
+$("#sky").onclick=e=>{const c=e.target.closest("circle");if(c){select(c.dataset.id);show("cat")}};
+
+// calculators
+const n=id=>parseFloat($(id).value);
+function calc(){
+  const m=n("#m1"),d=n("#d1");
+  $("#o1").textContent=(m&&d>0||m===0&&d>0)?"M = "+(m-5*Math.log10(d/3.2616/10)).toFixed(2):"Enter values";
+  const ap=n("#ap"),fl=n("#fl"),ep=n("#ep");
+  if(ap>0&&fl>0&&ep>0){$("#o2").innerHTML=`Limit mag ${(7.5+5*Math.log10(ap/10)).toFixed(1)}<br>${(fl/ep).toFixed(0)}x · f/${(fl/ap).toFixed(1)}<br>${Math.round((ap/7)**2)}x light grasp<br>Resolution ${(116/ap).toFixed(2)}″`}else $("#o2").textContent="Enter values";
+  const sz=n("#sz"),d3=n("#d3");
+  if(sz>0&&d3>0){const am=sz/d3*206265/60;$("#o3").textContent=am.toFixed(1)+" arcmin ("+(am/31).toFixed(2)+" Moons)"}else $("#o3").textContent="Enter values";
+  const ra=n("#ra");$("#o4").textContent=ra>=0&&ra<=24?bestMonth(ra):"Enter 0 to 24";
+}
+document.querySelectorAll(".tools input").forEach(i=>i.addEventListener("input",calc));
+$("#gl").innerHTML=G.map(g=>`<div><dt>${g[0]}</dt><dd>${g[1]}</dd></div>`).join("");
+
+// tabs & theme
+function show(t){
+  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.t===t));
+  ["cat","map","tools","gloss"].forEach(id=>$("#"+id).hidden=id!==t);
+  if(t==="map")drawSky();
+}
+$("#tabs").onclick=e=>{const b=e.target.closest("button");if(b)show(b.dataset.t)};
+$("#theme").onclick=()=>{const r=document.documentElement,dark=getComputedStyle(r).getPropertyValue("--bg").trim()==="#0a0e1c";r.dataset.theme=dark?"light":"dark"};
+
+renderList();renderDetail();calc();
+</script>
+</body>
+</html>
